@@ -1,0 +1,120 @@
+% vim: set spell spelllang=en tw=100 :
+
+\documentclass[letterpaper]{article}
+\usepackage[pass]{geometry}
+
+\usepackage{ijcai16}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage{complexity}
+
+\title{Solving Hard Subgraph Problems in Parallel}
+
+\author{Ciaran McCreesh\thanks{This work was supported by the Engineering and Physical Sciences
+Research Council [grant number EP/K503058/1]} \\
+University of Glasgow, Glasgow, Scotland \\ c.mccreesh.1@research.gla.ac.uk}
+
+\pdfinfo{
+    /Title (Solving Hard Subgraph Problems in Parallel)
+    /Author (Ciaran McCreesh)
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    We look at problems involving finding subgraphs in larger graphs, such as the maximum clique
+    problem, the subgraph isomorphism problem, and the maximum common subgraph problem. We
+    investigate variable and value ordering heuristics, different inference strategies, intelligent
+    backtracking search (backjumping), and bit- and thread-parallelism to exploit modern hardware.
+\end{abstract}
+
+\section{Overview}
+
+We are looking at problems which involve finding subgraphs inside larger graphs. The \emph{maximum
+clique} problem  is to find a largest complete subgraph inside a given graph. More generally, the
+\emph{subgraph isomorphism} family of problems involve finding a specified pattern graph
+inside a larger target graph. More generally still, the \emph{maximum common subgraph}
+problem is to find a largest subgraph common to two or more given graphs.
+These problems are \NP-hard, but we can often solve instances quickly in practice, even for graphs
+with up to tens of thousands of vertices. Algorithms for these problems have been used successfully
+in areas including bioinformatics and chemistry, computer vision, law enforcement, model checking,
+compilers, and pattern recognition.
+
+Ultimately, all of these problems are solved using some form of backtracking search: we try to build
+up an assignment of values to variables, satisfying a set of constraints. To obtain the best
+results, we need to select the right kind of preprocessing, inference, learning, and search.
+
+\section{Our Contributions}
+
+When branching, selecting a good variable and value can have a huge impact on search: with good
+heuristics, most instances that occur in practice are reasonably easy to solve.
+
+Modern clique algorithms often use some variation of an integrated colouring-based bound and
+ordering heuristic \cite{Tomita:2010}. We have determined why this particular branching strategy
+works so well in practice \cite{cp/McCreeshP14}. Our results suggest that it is because this
+strategy tends to branch on small colour classes first, which is similar to the widely-used smallest
+domain first heuristic (and this contradicts the explanation given previously in the literature).
+This knowledge allowed us to design a better branching strategy, which explicitly considered the
+sizes of colour classes.
+
+For subgraph isomorphism, we observed that many existing benchmark suites contain large numbers of
+very easy satisfiable instances. We have shown how to generate ``really hard'' random instances for
+subgraph isomorphism problems \cite{ijcai/McCreeshPT15}, and explained how this lets us design
+better variable and value ordering heuristics. This work builds upon the satisfiable-unsatisfiable
+phase transition phenomena commonly seen in \NP-complete problems, but because of the larger number
+of instance generation parameters, much richer behaviour is observed.  Interestingly, our results
+suggest that constrainedness \cite{Gent:1996:Kappa}, not proximity to a phase transition, determines
+whether an instance is hard in practice.
+
+Since we are looking for good performance, it is important to design algorithms with modern hardware
+features in mind. Current CPUs have several (or dozens of) processing cores, and it is wasteful not
+to exploit this. We have shown that it is possible to get very good speedups by using
+thread-parallel tree search for the maximum clique problem \cite{algorithms/McCreeshP13}. To explain
+why our approach worked so well (and why randomised work stealing does not), we then looked in more
+detail at how parallel search strategies interact with search.  We show that there is a connection
+between parallel tree-search and value ordering heuristic behaviours: by explicitly stealing work
+early in search, we can offset poor early value ordering heuristic choices \cite{topc/McCreeshP15},
+giving an alternative to discrepancy searches. An additional benefit of this approach is
+that it guarantees that adding more processing cores will never make behaviour worse
+\cite{Trienekens:1990}, and that parallel runtimes are reproducible.
+
+We brought all of this together to develop a new algorithm for the subgraph isomorphism problem
+\cite{cp/McCreeshP15}. We combined bit-parallel filtering, a new all-different propagator,
+a stronger form of inference via preprocessing, and a different way of performing backjumping that
+does not need to maintain conflict sets or modify propagators. We showed how backjumping may be
+parallelised safely and effectively, by treating the branching as a lazy fold with left-zero
+elements.
+
+Our results indicated that different instances would benefit from different strengths of filtering. We
+demonstrated that it is possible to use using machine learning to select, on an instance-by-instance
+basis, a good choice from a portfolio of subgraph isomorphism algorithms \cite{lion/KotthoffMS15}.
+
+We have also investigated generalisations of these problems: the balanced induced biclique problem
+\cite{cpaior/McCreeshP14} requires symmetry breaking, and the maximum labelled clique problem is a
+two-pass multi-objective problem with additional side constraints \cite{ol/McCreeshP15}.
+
+We are currently investigating the maximum weight clique (or independent set) problem. The colouring
+bound used in the maximum clique problem is not usable with large weights. We have seen favourable
+initial results using decision diagram bounds \cite{Bergman:2014}, although variable ordering
+heuristics behave unexpectedly compared to in conventional tree-search. We also believe that
+parallel search is likely to be beneficial here, and that existing work on safe and reproducible
+parallel search should generalise to parallel decision diagrams \cite{BergmanCSSSH14}.
+
+We have preliminary results on the maximum common subgraph problem. The best existing
+approaches fall into one of two categories: backtracking search with strong inference based around
+an enhanced all-different propagator, \cite{NdiayeS11}, or by reduction to the maximum clique
+problem. We believe a hybrid approach is possible.
+
+Finally, we intend to investigate stronger conflict analysis for these algorithms, and to move
+towards a clause-learning type approach. Combining SAT-style clause learning with graph-based search
+has been shown to be effective for colouring problems \cite{Zhou}. We would like to understand why,
+and how to generalise this to subgraph isomorphism problems (ideally without having to reduce to
+CNF, which loses high level structural information).
+
+\bibliographystyle{named}
+\bibliography{abstract}
+
+\end{document}
+
